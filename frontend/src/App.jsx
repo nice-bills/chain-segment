@@ -71,20 +71,24 @@ function App() {
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-bg-main text-sm">
       
-      {/* 1. Compact Top Navigation Bar */}
-      <header className="h-14 border-b border-border bg-bg-panel flex items-center px-4 justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 text-accent flex items-center justify-center">
-             <img src={Logo} alt="Cluster Protocol" className="w-full h-full text-accent" />
+      {/* 1. Compact Top Navigation Bar (Command Deck Layout) */}
+      <header className="h-auto md:h-14 border-b border-border bg-bg-panel flex flex-col md:flex-row items-stretch md:items-center px-4 py-3 md:py-0 gap-3 md:gap-0 justify-between shrink-0 z-20">
+        
+        {/* Deck 1: Brand HUD */}
+        <div className="flex items-center justify-between md:justify-start gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 text-accent flex items-center justify-center">
+               <img src={Logo} alt="Cluster Protocol" className="w-full h-full text-accent" />
+            </div>
+            <h1 className="font-mono font-semibold tracking-tight text-text-primary">
+              CLUSTER<span className="text-text-secondary">PROTOCOL</span>
+            </h1>
           </div>
-          <h1 className="font-mono font-semibold tracking-tight text-text-primary">
-            CLUSTER<span className="text-text-secondary">PROTOCOL</span>
-          </h1>
           <span className="px-2 py-0.5 rounded-full bg-border text-[10px] text-text-secondary font-mono">v2.1.0</span>
         </div>
 
-        {/* Dense Search Input */}
-        <div className="flex items-center gap-2 w-full max-w-md">
+        {/* Deck 2: Command Line (Search) */}
+        <div className="flex items-center gap-2 w-full md:max-w-md">
           <div className="relative flex-grow group">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">
               <Terminal size={14} />
@@ -104,7 +108,7 @@ function App() {
             disabled={status === 'loading'}
             className="px-4 py-1.5 bg-accent hover:bg-amber-400 text-black font-semibold text-xs uppercase tracking-wide rounded-sm transition-colors disabled:opacity-50"
           >
-            {status === 'loading' ? "RUNNING..." : "EXECUTE"}
+            {status === 'loading' ? "..." : "RUN"}
           </button>
         </div>
       </header>
@@ -117,11 +121,11 @@ function App() {
       )}
 
       {/* Main Content - Flex Layout to avoid scroll */}
-      <main className="flex-grow flex items-center justify-center p-4 md:p-6 overflow-hidden relative">
+      <main className="flex-grow flex flex-col md:flex-row items-center justify-center p-4 md:p-6 overflow-y-auto md:overflow-hidden relative">
         
         {/* Empty State */}
         {status === 'idle' && (
-          <div className="text-center text-text-secondary space-y-4 max-w-md">
+          <div className="text-center text-text-secondary space-y-4 max-w-md mt-10 md:mt-0">
             <Layers className="w-12 h-12 mx-auto opacity-20" />
             <div className="space-y-1">
                <h2 className="text-text-primary font-medium">Ready to Process</h2>
@@ -132,7 +136,7 @@ function App() {
 
         {/* Loading State */}
         {status === 'loading' && (
-          <div className="w-64 space-y-2">
+          <div className="w-64 space-y-2 mt-10 md:mt-0">
             <div className="h-1 bg-border overflow-hidden rounded-full">
               <div className="h-full bg-accent w-1/3 animate-[shimmer_1s_infinite_linear]"></div>
             </div>
@@ -150,11 +154,11 @@ function App() {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.2 }}
-              className="w-full max-w-6xl h-full grid grid-cols-1 md:grid-cols-12 gap-4 grid-rows-[auto_1fr] md:grid-rows-1"
+              className="w-full max-w-6xl h-auto md:h-full grid grid-cols-1 md:grid-cols-12 gap-4 grid-rows-[auto_1fr] md:grid-rows-1 pb-10 md:pb-0"
             >
               
               {/* Col 1: Visuals (Radar) - 5 Cols */}
-              <div className="md:col-span-5 bg-bg-panel border border-border flex flex-col">
+              <div className="md:col-span-5 bg-bg-panel border border-border flex flex-col min-h-[350px] md:min-h-0">
                 <div className="p-3 border-b border-border flex justify-between items-center">
                   <span className="text-xs font-mono text-text-primary font-semibold uppercase tracking-wider">Behavioral Topology</span>
                   <Activity size={12} className="text-text-secondary" />
@@ -177,10 +181,10 @@ function App() {
               </div>
 
               {/* Col 2: Metrics & Insights - 7 Cols */}
-              <div className="md:col-span-7 flex flex-col gap-4 overflow-y-auto pr-1">
+              <div className="md:col-span-7 flex flex-col gap-4 overflow-visible md:overflow-y-auto pr-1">
                 
                 {/* Top Row: Metrics */}
-                <div className="grid grid-cols-3 gap-4 h-24 shrink-0">
+                <div className="grid grid-cols-3 gap-2 md:gap-4 h-20 md:h-24 shrink-0">
                   <MetricCard 
                     label="TX_COUNT" 
                     value={data.stats.tx_count} 
