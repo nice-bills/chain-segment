@@ -34,6 +34,29 @@ function App() {
     }
   };
 
+  const pollStatus = (jobId) => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/analyze/status/${jobId}`);
+        const result = res.data;
+        
+        if (result.status === "completed") {
+          clearInterval(interval);
+          setData(result);
+          setStatus("success");
+        } else if (result.status === "failed") {
+          clearInterval(interval);
+          setErrorMsg(result.error || "Analysis Failed");
+          setStatus("error");
+        }
+      } catch (err) {
+        clearInterval(interval);
+        setErrorMsg("POLLING_ERR: Lost connection");
+        setStatus("error");
+      }
+    }, 2000);
+  };
+
   const handleExport = () => {
     if (!data) return;
     const jsonString = `data:text/json;chatset=utf-8,${encodeURIComponent(
