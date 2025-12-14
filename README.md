@@ -13,10 +13,18 @@ short_description: Behavioral clustering engine for Web3 wallets
 
 Unsupervised machine learning project to segment cryptocurrency wallets into behavioral personas (e.g., "Whales", "NFT Flippers", "Dormant") based on on-chain transaction data.
 
-## Project Overview
-- **Goal:** Identify distinct user behaviors in Web3 to enable personalized targeting or risk analysis.
-- **Data Source:** Dune Analytics (Ethereum transaction history).
-- **Technique:** Unsupervised Clustering (K-Means).
+## ❓ The Problem
+In the Web3 ecosystem, users are anonymous by default. A wallet address (`0x123...`) gives no indication of whether the user is a high-value institution, a retail trader, a bot, or an NFT collector. 
+*   **Marketing is blind:** Projects cannot target specific users effectively.
+*   **Risk is opaque:** Protocols cannot easily distinguish between organic users and sybil attackers.
+*   **Data is noisy:** Raw transaction logs are massive and unreadable without advanced processing.
+
+## 💡 The Solution: Cluster Protocol
+**Cluster Protocol** is an AI-powered engine that "fingerprints" wallets based on their behavior, not their identity.
+1.  **Ingest:** Pulls raw on-chain data (Gas spent, NFT volume, DEX trades, etc.) via Dune Analytics.
+2.  **Process:** Normalizes skewed financial data using **Yeo-Johnson Power Transformations**.
+3.  **Cluster:** Uses **K-Means Clustering** to mathematically group similar wallets.
+4.  **Label:** Assigns a human-readable persona (e.g., "Active Retail", "High-Frequency Bot") with a confidence score.
 
 ## Key Features
 - **Robust Preprocessing:** Handles extreme data skewness (common in financial data) using **Yeo-Johnson Power Transformation**.
