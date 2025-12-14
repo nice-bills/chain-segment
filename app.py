@@ -1,6 +1,10 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from src.inference import ClusterPredictor
 from src.llm import PersonaExplainer
 import os
@@ -14,14 +18,24 @@ from typing import Optional, Dict, Any
 load_dotenv()
 DUNE_API_KEY = os.getenv("DUNE_API_KEY")
 
+# Initialize Limiter
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(title="Crypto Wallet Persona API", description="Async API with AI-powered Wallet Analysis.")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 origins = [
     "http://localhost",
     "http://localhost:5173", # Default Vite port
     "http://localhost:5173", # Vite port when accessed via IP
-    "YOUR_VERCEL_FRONTEND_URL" # Placeholder for your Vercel frontend URL
+    "http://127.0.0.1:5173", # Vite port when accessed via IP
 ]
+
+# Add Vercel Frontend URL from Env (if set)
+vercel_frontend = os.getenv("FRONTEND_URL")
+if vercel_frontend:
+    origins.append(vercel_frontend)
 
 app.add_middleware(
     CORSMiddleware,
@@ -144,12 +158,13 @@ def process_wallet_analysis(job_id: str, wallet_address: str):
 
 # --- Endpoints ---
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def home():
-    return {"message": "Crypto Persona API (Async + AI). Use POST /analyze/start/{wallet} to begin."}
+    return RedirectResponse(url="/docs")
 
 @app.post("/analyze/start/{wallet_address}", response_model=JobResponse)
-def start_analysis(wallet_address: str, background_tasks: BackgroundTasks):
+@limiter.limit("5/minute")
+def start_analysis(wallet_address: str, background_tasks: BackgroundTasks, request: Request):
     """
     Starts the analysis job. Returns a job_id immediately.
     Checks cache first for instant results.
