@@ -1,0 +1,24 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.env
+
+# Data & Notebooks
+data/
+notebooks/
+*.ipynb
+cache_data/
+docs/
+
+# Frontend
+frontend/
+node_modules/
+
+# Local artifacts
+*.csv
