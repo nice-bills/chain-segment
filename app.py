@@ -19,6 +19,8 @@ app = FastAPI(title="Crypto Wallet Persona API", description="Async API with AI-
 origins = [
     "http://localhost",
     "http://localhost:5173", # Default Vite port
+    "http://localhost:5173", # Vite port when accessed via IP
+    "YOUR_VERCEL_FRONTEND_URL" # Placeholder for your Vercel frontend URL
 ]
 
 app.add_middleware(

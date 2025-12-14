@@ -31,7 +31,7 @@ COPY wallet_power_transformer.pkl .
 # Create cache directory
 RUN mkdir -p cache_data
 
-EXPOSE 8000
+EXPOSE 7860
 
 # Use the venv's uvicorn directly (thanks to PATH)
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
