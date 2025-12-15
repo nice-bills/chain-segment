@@ -11,6 +11,19 @@ export default {
         sans: ['"Space Mono"', 'monospace'], // Force mono everywhere for this look
       },
       colors: {
+        // Map App.jsx classes to Retro Theme
+        bg: {
+          main: '#050505',
+          panel: '#111111',
+        },
+        border: '#333333',
+        text: {
+          primary: '#e5e5e5', // Almost white
+          secondary: '#888888', // Muted gray
+        },
+        accent: '#ffb000', // Amber
+        
+        // Original Retro Palette (kept for reference)
         retro: {
           bg: '#050505',      // Void Black
           surface: '#111111', // Dark Gray

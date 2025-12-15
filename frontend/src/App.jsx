@@ -1,12 +1,85 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Search, Share2, Activity, Database, Zap, Wallet, ChevronRight, Terminal, Layers, Hash } from 'lucide-react';
+import { Search, Share2, Activity, Database, Zap, Wallet, ChevronRight, Terminal, Layers, Hash, Info, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PersonaChart from './components/PersonaChart';
 import RoastCard from './components/RoastCard';
 import Logo from './assets/logo.svg';
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+function InfoModal({ onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="w-full max-w-2xl bg-bg-panel border border-border shadow-2xl relative max-h-[90vh] overflow-y-auto">
+        <button 
+          onClick={onClose}
+          className="absolute top-3 right-3 text-text-secondary hover:text-text-primary"
+        >
+          <X size={20} />
+        </button>
+        
+        <div className="p-6 space-y-6">
+          <div className="border-b border-border pb-4">
+            <h2 className="text-xl font-mono font-bold text-text-primary flex items-center gap-2">
+              <Info size={20} className="text-accent" />
+              SYSTEM PROTOCOLS
+            </h2>
+            <p className="text-xs text-text-secondary font-mono mt-1">OPERATIONAL CONSTRAINTS & SPECIFICATIONS</p>
+          </div>
+
+          <div className="space-y-4 font-mono text-xs md:text-sm text-text-primary/90">
+            
+            <section>
+              <h3 className="font-bold text-accent mb-1">1. NETWORK: ETHEREUM MAINNET ONLY</h3>
+              <ul className="list-disc pl-5 space-y-1 text-text-secondary">
+                <li>Compatible: Ethereum Mainnet (L1).</li>
+                <li>Incompatible: Base, Arbitrum, Optimism, Polygon, Solana, Bitcoin.</li>
+                <li>Result: Wallets active only on L2s will show 0 activity.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="font-bold text-accent mb-1">2. ENTITY RECOGNITION</h3>
+              <ul className="list-disc pl-5 space-y-1 text-text-secondary">
+                <li>Optimized for: <strong>User Wallets (EOA)</strong>.</li>
+                <li>Supported: Smart Contracts (data retrieval works).</li>
+                <li>Warning: Analyzing Contracts (e.g., Uniswap Router) may yield skewed "Whale" personas due to pooled funds.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="font-bold text-accent mb-1">3. ASSET COVERAGE</h3>
+              <ul className="list-disc pl-5 space-y-1 text-text-secondary">
+                <li>Native ETH: 100% Coverage.</li>
+                <li>ERC-20 Tokens: 100% Coverage (USDC, PEPE, UNI, etc.).</li>
+                <li>NFTs: ERC-721 & ERC-1155 Standard.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="font-bold text-accent mb-1">4. TEMPORAL HORIZON (OPTIMIZATION)</h3>
+              <ul className="list-disc pl-5 space-y-1 text-text-secondary">
+                <li>ETH Txs: <strong>Full History (Since 2015)</strong>. Accurate age/gas stats.</li>
+                <li>DeFi/NFTs: <strong>Post-2018 Analysis</strong>. Ignores experimental pre-2018 token activity for query speed.</li>
+              </ul>
+            </section>
+
+          </div>
+
+          <div className="pt-4 border-t border-border flex justify-end">
+            <button 
+              onClick={onClose}
+              className="px-6 py-2 bg-accent text-black font-bold font-mono text-xs uppercase tracking-wider hover:bg-amber-400 transition-colors"
+            >
+              ACKNOWLEDGE
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function StatusCycler() {
   const [msgIndex, setMsgIndex] = useState(0);
@@ -40,6 +113,7 @@ function App() {
   const [status, setStatus] = useState("idle"); 
   const [data, setData] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showInfo, setShowInfo] = useState(false);
 
   const analyzeWallet = async () => {
     if (!wallet.startsWith("0x")) {
@@ -96,8 +170,10 @@ function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-bg-main text-sm">
+    <div className="h-screen flex flex-col overflow-hidden bg-bg-main text-sm relative">
       
+      {showInfo && <InfoModal onClose={() => setShowInfo(false)} />}
+
       {/* 1. Compact Top Navigation Bar (Command Deck Layout) */}
       <header className="h-auto md:h-14 border-b border-border bg-bg-panel flex flex-col md:flex-row items-stretch md:items-center px-4 py-3 md:py-0 gap-3 md:gap-0 justify-between shrink-0 z-20">
         
@@ -111,7 +187,12 @@ function App() {
               CLUSTER<span className="text-text-secondary">PROTOCOL</span>
             </h1>
           </div>
-          <span className="px-2 py-0.5 rounded-full bg-border text-[10px] text-text-secondary font-mono">v2.1.0</span>
+          <div className="flex items-center gap-2">
+             <span className="px-2 py-0.5 rounded-full bg-border text-[10px] text-text-secondary font-mono">v2.1.0</span>
+             <button onClick={() => setShowInfo(true)} className="text-text-secondary hover:text-accent transition-colors">
+                <Info size={16} />
+             </button>
+          </div>
         </div>
 
         {/* Deck 2: Command Line (Search) */}
