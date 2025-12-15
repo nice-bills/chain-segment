@@ -30,7 +30,7 @@ function StatusCycler() {
   return (
     <div className="flex justify-between text-[10px] font-mono text-text-secondary uppercase tracking-widest">
       <span className="animate-pulse">{messages[msgIndex]}</span>
-      <span className="animate-[blink_1s_infinite]">_</span>
+      <span className="animate-pulse">_</span>
     </div>
   );
 }
@@ -40,123 +40,25 @@ function App() {
   const [status, setStatus] = useState("idle"); 
   const [data, setData] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
-
-  const analyzeWallet = async () => {
-    if (!wallet.startsWith("0x")) {
-      setErrorMsg("INVALID_ADDRESS: Must start with 0x");
-      return;
-    }
-    
-    setStatus("loading");
-    setErrorMsg("");
-    setData(null);
-
-    try {
-      const startRes = await axios.post(`${API_BASE}/analyze/start/${wallet}`);
-      pollStatus(startRes.data.job_id);
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("CONNECTION_ERR: API Unreachable");
-      setStatus("error");
-    }
-  };
-
-  const pollStatus = (jobId) => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await axios.get(`${API_BASE}/analyze/status/${jobId}`);
-        const result = res.data;
-        
-        if (result.status === "completed") {
-          clearInterval(interval);
-          setData(result);
-          setStatus("success");
-        } else if (result.status === "failed") {
-          clearInterval(interval);
-          setErrorMsg(result.error || "Analysis Failed");
-          setStatus("error");
-        }
-      } catch (err) {
-        clearInterval(interval);
-        setErrorMsg("POLLING_ERR: Lost connection");
-        setStatus("error");
-      }
-    }, 2000);
-  };
-
-  const handleExport = () => {
-    if (!data) return;
-    const jsonString = `data:text/json;chatset=utf-8,${encodeURIComponent(
-      JSON.stringify(data, null, 2)
-    )}`;
-    const link = document.createElement("a");
-    link.href = jsonString;
-    link.download = `analysis_${data.wallet_address || "wallet"}.json`;
-    link.click();
-  };
-
-  return (
-    <div className="h-screen flex flex-col overflow-hidden bg-bg-main text-sm">
-      
-      {/* 1. Compact Top Navigation Bar (Command Deck Layout) */}
-      <header className="h-auto md:h-14 border-b border-border bg-bg-panel flex flex-col md:flex-row items-stretch md:items-center px-4 py-3 md:py-0 gap-3 md:gap-0 justify-between shrink-0 z-20">
-        
-        {/* Deck 1: Brand HUD */}
-        <div className="flex items-center justify-between md:justify-start gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 text-accent flex items-center justify-center">
-               <img src={Logo} alt="Cluster Protocol" className="w-full h-full text-accent" />
-            </div>
-            <h1 className="font-mono font-semibold tracking-tight text-text-primary">
-              CLUSTER<span className="text-text-secondary">PROTOCOL</span>
-            </h1>
-          </div>
-          <span className="px-2 py-0.5 rounded-full bg-border text-[10px] text-text-secondary font-mono">v2.1.0</span>
-        </div>
-
-        {/* Deck 2: Command Line (Search) */}
-        <div className="flex items-center gap-2 w-full md:max-w-md">
-          <div className="relative flex-grow group">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">
-              <Terminal size={14} />
-            </div>
-            <input
-              type="text"
-              value={wallet}
-              onChange={(e) => setWallet(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && analyzeWallet()}
-              placeholder="0x..."
-              className="w-full bg-bg-main border border-border text-text-primary pl-9 pr-3 py-1.5 font-mono text-xs focus:outline-none focus:border-accent transition-colors rounded-sm"
-              disabled={status === 'loading'}
-            />
-          </div>
-          <button
-            onClick={analyzeWallet}
-            disabled={status === 'loading'}
-            className="px-4 py-1.5 bg-accent hover:bg-amber-400 text-black font-semibold text-xs uppercase tracking-wide rounded-sm transition-colors disabled:opacity-50"
-          >
-            {status === 'loading' ? "..." : "RUN"}
-          </button>
-        </div>
-      </header>
-      
-      {/* Error Toast */}
-      {errorMsg && (
-        <div className="bg-red-900/20 border-b border-red-900/50 text-red-400 px-4 py-2 text-xs font-mono text-center">
-          ! {errorMsg}
-        </div>
-      )}
+  
+  // ... (rest of code) ...
 
       {/* Main Content - Flex Layout to avoid scroll */}
       <main className="flex-grow flex flex-col md:flex-row items-center justify-center p-4 md:p-6 overflow-y-auto md:overflow-hidden relative">
         
-        {/* Empty State */}
-        {status === 'idle' && (
+        {/* Empty / Error State */}
+        {(status === 'idle' || status === 'error') && (
           <div className="text-center text-text-secondary space-y-4 max-w-md mt-10 md:mt-0">
-            <Layers className="w-12 h-12 mx-auto opacity-20" />
+            <Layers className={`w-12 h-12 mx-auto ${status === 'error' ? 'text-red-500 opacity-50' : 'opacity-20'}`} />
             <div className="space-y-1">
-               <h2 className="text-text-primary font-medium">Ready to Process</h2>
-               <p className="text-xs">Enter a wallet address above to initiate the segmentation engine.</p>
+               <h2 className={`font-medium ${status === 'error' ? 'text-red-400' : 'text-text-primary'}`}>
+                 {status === 'error' ? 'System Failure' : 'Ready to Process'}
+               </h2>
+               <p className="text-xs">
+                 {status === 'error' 
+                   ? "The neural uplink encountered an error. Check address and retry." 
+                   : "Enter a wallet address above to initiate the segmentation engine."}
+               </p>
             </div>
           </div>
         )}
@@ -257,6 +159,23 @@ function App() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* System Status Footer (Visible only in Idle/Error) */}
+      {(status === 'idle' || status === 'error') && (
+        <footer className="h-6 bg-bg-panel border-t border-border flex items-center px-4 justify-between text-[10px] font-mono text-text-secondary uppercase shrink-0 z-20">
+          <div className="flex gap-4 md:gap-6">
+            <span className="flex items-center gap-1.5">
+              <div className={`w-1.5 h-1.5 rounded-full ${status === 'error' ? 'bg-red-500' : 'bg-green-500'}`}></div>
+              {status === 'error' ? 'SYSTEM_OFFLINE' : 'SYSTEM_ONLINE'}
+            </span>
+            <span className="text-text-primary/70">TARGET: ETH_MAINNET</span>
+          </div>
+          <div className="flex gap-4">
+             <span className="hidden md:block opacity-50">SECURE_UPLINK</span>
+             <span className="opacity-50">V2.1.0</span>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
