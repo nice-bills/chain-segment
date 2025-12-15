@@ -132,7 +132,7 @@ def process_wallet_analysis(job_id: str, wallet_address: str):
         print(f"Polling Dune execution {execution_id}...")
         status_url = f"https://api.dune.com/api/v1/execution/{execution_id}/status"
         
-        max_retries = 30 # 30 * 2s = 60s max wait
+        max_retries = 150 # 150 * 2s = 300s (5 mins) max wait
         for i in range(max_retries):
             status_res = requests.get(status_url, headers=headers, timeout=10)
             if status_res.status_code != 200:
