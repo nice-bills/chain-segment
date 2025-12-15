@@ -10,6 +10,7 @@ from src.llm import PersonaExplainer
 import os
 import requests
 import uuid
+import time
 from dotenv import load_dotenv
 from diskcache import Cache
 from typing import Optional, Dict, Any
@@ -89,25 +90,69 @@ def process_wallet_analysis(job_id: str, wallet_address: str):
         # Update status to processing
         cache.set(job_id, {"status": "processing", "wallet": wallet_address}, expire=CACHE_TTL)
         
-        # 1. Fetch Data from Dune
+        # 1. Execute Dune Query (Start New Run)
         if not DUNE_API_KEY:
             raise Exception("Dune API Key missing configuration.")
 
-        dune_url = f"https://api.dune.com/api/v1/query/6252521/results?wallet={wallet_address}"
+        # Step A: Submit Execution
+        execute_url = "https://api.dune.com/api/v1/query/6252521/execute"
         headers = {"X-Dune-API-Key": DUNE_API_KEY}
+        payload = {"query_parameters": {"wallet": wallet_address}}
         
-        print(f"Fetching Dune data for {wallet_address}...")
-        response = requests.get(dune_url, headers=headers, timeout=15)
+        print(f"Submitting Dune query for {wallet_address}...")
+        exec_res = requests.post(execute_url, headers=headers, json=payload, timeout=10)
         
-        if response.status_code != 200:
-            raise Exception(f"Dune API Error: {response.status_code} - {response.text}")
-
-        data_json = response.json()
-        if not data_json.get("result", {}).get("rows"):
-            raise Exception("Wallet not found in Dune dataset (no activity).")
+        if exec_res.status_code != 200:
+            raise Exception(f"Dune Execution Failed: {exec_res.status_code} - {exec_res.text}")
             
-        row_data = data_json["result"]["rows"][0]
+        execution_id = exec_res.json().get("execution_id")
+        if not execution_id:
+            raise Exception("No execution_id returned from Dune.")
+
+        # Step B: Poll for Completion
+        print(f"Polling Dune execution {execution_id}...")
+        status_url = f"https://api.dune.com/api/v1/execution/{execution_id}/status"
         
+        max_retries = 30 # 30 * 2s = 60s max wait
+        for i in range(max_retries):
+            status_res = requests.get(status_url, headers=headers, timeout=10)
+            if status_res.status_code != 200:
+                 # Temporary network glitch? Wait and retry.
+                 time.sleep(2)
+                 continue
+                 
+            state = status_res.json().get("state")
+            if state == "QUERY_STATE_COMPLETED":
+                break
+            elif state == "QUERY_STATE_FAILED":
+                raise Exception("Dune Query Execution FAILED internally.")
+            elif state == "QUERY_STATE_CANCELLED":
+                raise Exception("Dune Query was CANCELLED.")
+                
+            time.sleep(2)
+        else:
+            raise Exception("Dune Query Timed Out (60s).")
+
+        # Step C: Fetch Results
+        results_url = f"https://api.dune.com/api/v1/execution/{execution_id}/results"
+        results_res = requests.get(results_url, headers=headers, timeout=15)
+        
+        if results_res.status_code != 200:
+             raise Exception(f"Failed to fetch results: {results_res.status_code}")
+
+        data_json = results_res.json()
+        rows = data_json.get("result", {}).get("rows", [])
+        
+        if not rows:
+            # If the query ran but returned no rows (maybe empty wallet?)
+            # We can either fail or proceed with zero-filled data.
+            # Given the SQL logic, it usually returns 1 row with 0s if empty, 
+            # but let's be safe.
+             raise Exception("Dune returned no data rows for this wallet.")
+        
+        # We trust the execution result because we just ran it with the param.
+        row_data = rows[0]
+            
         # 2. Prepare Features & Predict
         if predictor is None:
              raise Exception("Inference Model not loaded.")
