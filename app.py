@@ -11,13 +11,29 @@ import os
 import requests
 import uuid
 import time
+import random
 from dotenv import load_dotenv
 from diskcache import Cache
 from typing import Optional, Dict, Any
 
 # Load environment variables
 load_dotenv()
-DUNE_API_KEY = os.getenv("DUNE_API_KEY")
+
+# Load all available Dune API Keys
+DUNE_API_KEYS = []
+# 1. Primary Key
+if os.getenv("DUNE_API_KEY"):
+    DUNE_API_KEYS.append(os.getenv("DUNE_API_KEY"))
+# 2. Secondary Keys (DUNE_API_KEY_2, _3, etc.)
+i = 2
+while True:
+    key = os.getenv(f"DUNE_API_KEY_{i}")
+    if not key:
+        break
+    DUNE_API_KEYS.append(key)
+    i += 1
+
+print(f"Loaded {len(DUNE_API_KEYS)} Dune API Keys.")
 
 # Initialize Limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -91,12 +107,15 @@ def process_wallet_analysis(job_id: str, wallet_address: str):
         cache.set(job_id, {"status": "processing", "wallet": wallet_address}, expire=CACHE_TTL)
         
         # 1. Execute Dune Query (Start New Run)
-        if not DUNE_API_KEY:
-            raise Exception("Dune API Key missing configuration.")
+        if not DUNE_API_KEYS:
+            raise Exception("Dune API configuration missing.")
+
+        # Select a random API key to distribute load
+        selected_api_key = random.choice(DUNE_API_KEYS)
 
         # Step A: Submit Execution
         execute_url = "https://api.dune.com/api/v1/query/6252521/execute"
-        headers = {"X-Dune-API-Key": DUNE_API_KEY}
+        headers = {"X-Dune-API-Key": selected_api_key}
         payload = {"query_parameters": {"wallet": wallet_address}}
         
         print(f"Submitting Dune query for {wallet_address}...")
