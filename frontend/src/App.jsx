@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Search, Share2, Activity, Database, Zap, Wallet, ChevronRight, Terminal, Layers, Hash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,8 +40,112 @@ function App() {
   const [status, setStatus] = useState("idle"); 
   const [data, setData] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
-  
-  // ... (rest of code) ...
+
+  const analyzeWallet = async () => {
+    if (!wallet.startsWith("0x")) {
+      setErrorMsg("INVALID_ADDRESS: Must start with 0x");
+      return;
+    }
+    
+    setStatus("loading");
+    setErrorMsg("");
+    setData(null);
+
+    try {
+      const startRes = await axios.post(`${API_BASE}/analyze/start/${wallet}`);
+      pollStatus(startRes.data.job_id);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("CONNECTION_ERR: API Unreachable");
+      setStatus("error");
+    }
+  };
+
+  const pollStatus = (jobId) => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/analyze/status/${jobId}`);
+        const result = res.data;
+        
+        if (result.status === "completed") {
+          clearInterval(interval);
+          setData(result);
+          setStatus("success");
+        } else if (result.status === "failed") {
+          clearInterval(interval);
+          setErrorMsg(result.error || "Analysis Failed");
+          setStatus("error");
+        }
+      } catch (err) {
+        clearInterval(interval);
+        setErrorMsg("POLLING_ERR: Lost connection");
+        setStatus("error");
+      }
+    }, 2000);
+  };
+
+  const handleExport = () => {
+    if (!data) return;
+    const jsonString = `data:text/json;chatset=utf-8,${encodeURIComponent(
+      JSON.stringify(data, null, 2)
+    )}`;
+    const link = document.createElement("a");
+    link.href = jsonString;
+    link.download = `analysis_${data.wallet_address || "wallet"}.json`;
+    link.click();
+  };
+
+  return (
+    <div className="h-screen flex flex-col overflow-hidden bg-bg-main text-sm">
+      
+      {/* 1. Compact Top Navigation Bar (Command Deck Layout) */}
+      <header className="h-auto md:h-14 border-b border-border bg-bg-panel flex flex-col md:flex-row items-stretch md:items-center px-4 py-3 md:py-0 gap-3 md:gap-0 justify-between shrink-0 z-20">
+        
+        {/* Deck 1: Brand HUD */}
+        <div className="flex items-center justify-between md:justify-start gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 text-accent flex items-center justify-center">
+               <img src={Logo} alt="Cluster Protocol" className="w-full h-full text-accent" />
+            </div>
+            <h1 className="font-mono font-semibold tracking-tight text-text-primary">
+              CLUSTER<span className="text-text-secondary">PROTOCOL</span>
+            </h1>
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-border text-[10px] text-text-secondary font-mono">v2.1.0</span>
+        </div>
+
+        {/* Deck 2: Command Line (Search) */}
+        <div className="flex items-center gap-2 w-full md:max-w-md">
+          <div className="relative flex-grow group">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">
+              <Terminal size={14} />
+            </div>
+            <input
+              type="text"
+              value={wallet}
+              onChange={(e) => setWallet(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && analyzeWallet()}
+              placeholder="0x..."
+              className="w-full bg-bg-main border border-border text-text-primary pl-9 pr-3 py-1.5 font-mono text-xs focus:outline-none focus:border-accent transition-colors rounded-sm"
+              disabled={status === 'loading'}
+            />
+          </div>
+          <button
+            onClick={analyzeWallet}
+            disabled={status === 'loading'}
+            className="px-4 py-1.5 bg-accent hover:bg-amber-400 text-black font-semibold text-xs uppercase tracking-wide rounded-sm transition-colors disabled:opacity-50"
+          >
+            {status === 'loading' ? "..." : "RUN"}
+          </button>
+        </div>
+      </header>
+      
+      {/* Error Toast */}
+      {errorMsg && (
+        <div className="bg-red-900/20 border-b border-red-900/50 text-red-400 px-4 py-2 text-xs font-mono text-center">
+          ! {errorMsg}
+        </div>
+      )}
 
       {/* Main Content - Flex Layout to avoid scroll */}
       <main className="flex-grow flex flex-col md:flex-row items-center justify-center p-4 md:p-6 overflow-y-auto md:overflow-hidden relative">
