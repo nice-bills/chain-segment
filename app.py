@@ -38,6 +38,32 @@ print(f"Loaded {len(DUNE_API_KEYS)} Dune API Keys.")
 # Initialize Limiter
 limiter = Limiter(key_func=get_remote_address)
 
+# --- Helper: Contract Check ---
+def check_is_contract(wallet_address: str) -> bool:
+    """
+    Checks if an address is a smart contract using a public RPC.
+    Returns True if contract, False if EOA (User).
+    """
+    rpc_url = "https://eth.llamarpc.com"
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "eth_getCode",
+        "params": [wallet_address, "latest"],
+        "id": 1
+    }
+    
+    try:
+        res = requests.post(rpc_url, json=payload, timeout=5)
+        if res.status_code == 200:
+            result = res.json().get("result")
+            # '0x' means no code (EOA). Anything longer means Contract.
+            return result != "0x"
+    except Exception as e:
+        print(f"Contract check failed: {e}")
+        return False
+    
+    return False
+
 app = FastAPI(title="Crypto Wallet Persona API", description="Async API with AI-powered Wallet Analysis.")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -172,7 +198,12 @@ def process_wallet_analysis(job_id: str, wallet_address: str):
         # We trust the execution result because we just ran it with the param.
         row_data = rows[0]
             
-        # 2. Prepare Features & Predict
+        # 2. Heuristic Analysis & Prediction
+        
+        # A. Contract Check
+        is_contract = check_is_contract(wallet_address)
+        
+        # B. Feature Extraction
         if predictor is None:
              raise Exception("Inference Model not loaded.")
 
@@ -181,15 +212,39 @@ def process_wallet_analysis(job_id: str, wallet_address: str):
             val = row_data.get(feature)
             model_input[feature] = float(val) if val is not None else 0.0
 
-        # Run Inference
-        prediction_result = predictor.predict(model_input)
-        # Result format: {'cluster_label': 3, 'persona': 'Whale', 'probabilities': {...}}
+        # C. Decide Persona (Hybrid: Rules + AI)
+        final_persona = None
+        confidence = {}
+        
+        if is_contract:
+            final_persona = "Smart Contract Protocol"
+            # Flat scores for contract (or custom distribution)
+            confidence = {
+                "High-Value NFT & Crypto Traders (Degen Whales)": 0.0,
+                "High-Frequency Bots / Automated Traders": 0.0,
+                "Active Retail Users / Everyday Traders": 0.0,
+                "Ultra-Whales / Institutional & Exchange Wallets": 0.0
+            }
+        elif model_input.get('tx_count', 0) < 30:
+            final_persona = "Dormant / New User"
+            # Flat scores for new user
+            confidence = {
+                "High-Value NFT & Crypto Traders (Degen Whales)": 0.0,
+                "High-Frequency Bots / Automated Traders": 0.0,
+                "Active Retail Users / Everyday Traders": 1.0, # Lean towards Retail
+                "Ultra-Whales / Institutional & Exchange Wallets": 0.0
+            }
+        else:
+            # Run AI Inference
+            prediction_result = predictor.predict(model_input)
+            final_persona = prediction_result['persona']
+            confidence = prediction_result['probabilities']
         
         # 3. Generate AI Explanation
         explanation = "AI Analysis unavailable."
         if explainer:
             explanation = explainer.generate_explanation(
-                prediction_result['persona'], 
+                final_persona, 
                 model_input
             )
 
@@ -197,8 +252,8 @@ def process_wallet_analysis(job_id: str, wallet_address: str):
         final_result = {
             "status": "completed",
             "wallet_address": wallet_address,
-            "persona": prediction_result['persona'],
-            "confidence_scores": prediction_result['probabilities'],
+            "persona": final_persona,
+            "confidence_scores": confidence,
             "explanation": explanation,
             "stats": model_input
         }
