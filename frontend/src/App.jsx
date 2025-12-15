@@ -181,6 +181,7 @@ function App() {
 }
 
 function MetricCard({ label, value, icon }) {
+  // Metric display component
   return (
     <div className="bg-bg-panel border border-border p-3 flex flex-col justify-between">
       <div className="flex justify-between items-start text-text-secondary">
