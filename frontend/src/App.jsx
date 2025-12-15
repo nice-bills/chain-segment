@@ -8,6 +8,33 @@ import Logo from './assets/logo.svg';
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+function StatusCycler() {
+  const [msgIndex, setMsgIndex] = useState(0);
+  const messages = [
+    "> INITIALIZING_NEURAL_UPLINK...",
+    "> ESTABLISHING_DUNE_CONNECTION...",
+    "> SCANNING_ETHEREUM_HISTORY...",
+    "> AGGREGATING_NFT_VECTORS...",
+    "> COMPUTING_CLUSTERING_TENSORS...",
+    "> DECODING_BEHAVIORAL_PATTERNS...",
+    "> FINALIZING_AI_ANALYSIS..."
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMsgIndex((prev) => (prev + 1) % messages.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex justify-between text-[10px] font-mono text-text-secondary uppercase tracking-widest">
+      <span className="animate-pulse">{messages[msgIndex]}</span>
+      <span className="animate-[blink_1s_infinite]">_</span>
+    </div>
+  );
+}
+
 function App() {
   const [wallet, setWallet] = useState("");
   const [status, setStatus] = useState("idle"); 
@@ -140,10 +167,7 @@ function App() {
             <div className="h-1 bg-border overflow-hidden rounded-full">
               <div className="h-full bg-accent w-1/3 animate-[shimmer_1s_infinite_linear]"></div>
             </div>
-            <div className="flex justify-between text-[10px] font-mono text-text-secondary uppercase">
-              <span>Ingesting Data</span>
-              <span className="animate-pulse">...</span>
-            </div>
+            <StatusCycler />
           </div>
         )}
 
