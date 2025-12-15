@@ -34,6 +34,12 @@ In the Web3 ecosystem, users are anonymous by default. A wallet address (`0x123.
 - **Automated Retraining:** GitHub Actions workflow automatically fetches new data and retrains the model weekly to handle data drift.
 - **End-to-End API:** Fetch data from Dune and classify a wallet in a single API call.
 
+## ⚠️ Supported Networks
+**Cluster Protocol currently supports Ethereum Mainnet (L1) only.**
+*   **Supported:** Ethereum (`0x...`).
+*   **Not Supported:** L2s (Arbitrum, Optimism, Base), Sidechains (Polygon), or Non-EVM chains (Solana, Bitcoin).
+*   **Note:** The engine analyzes the last **2 Years** of history for DeFi/NFTs to ensure relevance and speed.
+
 ## Tech Stack
 - **Python 3.10+**
 - **Pandas & NumPy** (Data manipulation)
